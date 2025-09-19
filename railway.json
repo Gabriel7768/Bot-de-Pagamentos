@@ -1,0 +1,48 @@
+{
+  "$schema": "https://railway.app/railway.schema.json",
+  "build": {
+    "builder": "NIXPACKS",
+    "buildCommand": "pip install --upgrade pip && pip install -r requirements.txt"
+  },
+  "deploy": {
+    "startCommand": "python 'Bot pix cópia e cola.py'",
+    "restartPolicyType": "ON_FAILURE",
+    "restartPolicyMaxRetries": 10,
+    "healthcheckPath": null,
+    "healthcheckTimeout": 300,
+    "region": "us-west1"
+  },
+  "variables": {
+    "PYTHON_VERSION": "3.11",
+    "NIXPACKS_PYTHON_VERSION": "3.11",
+    "TOKEN_MERCADOPAGO": {
+      "description": "Token de acesso do MercadoPago",
+      "required": true
+    },
+    "TOKEN_BOT": {
+      "description": "Token do Bot do Telegram",
+      "required": true
+    },
+    "MY_CHAT_ID": {
+      "description": "ID do chat do administrador",
+      "required": true
+    },
+    "GROUP_INVITE_LINK": {
+      "description": "Link de convite do grupo",
+      "required": true
+    },
+    "GROUP_CHAT_ID": {
+      "description": "ID do grupo do Telegram",
+      "required": true
+    }
+  },
+  "services": [
+    {
+      "name": "bot-telegram-pix",
+      "icon": "🤖",
+      "source": {
+        "repo": "."
+      }
+    }
+  ]
+}
