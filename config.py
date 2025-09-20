@@ -3,8 +3,9 @@ import sys
 from dotenv import load_dotenv
 import mercadopago
 
-# Carrega as variáveis de ambiente do arquivo .env
-load_dotenv()
+# Carrega as variáveis de ambiente do arquivo .env (apenas se existir)
+if os.path.exists('.env'):
+    load_dotenv()
 
 # 🔧 Configuração de Debug
 DEBUG = os.getenv("DEBUG", "false").lower() == "true"
@@ -38,20 +39,20 @@ _mp_inicializado = False
 def _inicializar_mercadopago():
     """Inicializa o SDK do Mercado Pago (uso interno)"""
     global _sdk, _mp_inicializado
-    
+
     if _mp_inicializado:
         return True
-    
+
     if not TOKEN_MERCADOPAGO:
         return False
-    
+
     try:
         # Inicializa o SDK
         _sdk = mercadopago.SDK(TOKEN_MERCADOPAGO)
-        
+
         # Testa a conexão fazendo uma chamada simples
         test_response = _sdk.payment_methods().list_all()
-        
+
         if test_response.get("status") == 200:
             _mp_inicializado = True
             if DEBUG:
@@ -60,7 +61,7 @@ def _inicializar_mercadopago():
         else:
             _mp_inicializado = True  # SDK criado, mas resposta não confirmada
             return True
-            
+
     except Exception as e:
         if DEBUG:
             print(f"❌ ERRO ao inicializar SDK Mercado Pago: {str(e)}")
@@ -70,10 +71,10 @@ def _inicializar_mercadopago():
 def validar_config(silencioso=False):
     """
     Valida se todas as variáveis de ambiente necessárias estão configuradas
-    
+
     Args:
         silencioso: Se True, não imprime mensagens de erro
-    
+
     Returns:
         tuple: (config_ok, faltando, ids_invalidos)
     """
@@ -85,17 +86,17 @@ def validar_config(silencioso=False):
         "GROUP_INVITE_LINK": GROUP_INVITE_LINK,
         "GROUP_CHAT_ID": GROUP_CHAT_ID
     }
-    
+
     # Verifica também se os IDs são números válidos
     ids_invalidos = []
     if MY_CHAT_ID and not isinstance(MY_CHAT_ID, int):
         ids_invalidos.append("MY_CHAT_ID")
     if GROUP_CHAT_ID and not isinstance(GROUP_CHAT_ID, int):
         ids_invalidos.append("GROUP_CHAT_ID")
-    
+
     faltando = [nome for nome, valor in variaveis_necessarias.items() if not valor]
     config_ok = len(faltando) == 0 and len(ids_invalidos) == 0
-    
+
     # Em produção, imprime erro e para se não estiver OK (a menos que silencioso)
     if not DEBUG and not config_ok and not silencioso:
         erros = []
@@ -103,28 +104,32 @@ def validar_config(silencioso=False):
             erros.append(f"Variáveis faltando: {', '.join(faltando)}")
         if ids_invalidos:
             erros.append(f"IDs inválidos: {', '.join(ids_invalidos)}")
-        
+
         print(f"❌ ERRO CRÍTICO: Configuração inválida!")
         for erro in erros:
             print(f"   - {erro}")
-        print("\n💡 Configure as variáveis no Railway ou arquivo .env")
+        print("\n💡 Configure as variáveis de ambiente no Railway")
+        print("   Vá em Settings > Environment > Add Variable")
+        print("\n🔧 Variáveis necessárias:")
+        for var in faltando:
+            print(f"   - {var}")
         sys.exit(1)
-    
+
     return config_ok, faltando, ids_invalidos
 
 def get_mercadopago_sdk():
     """
     Retorna a instância do SDK do Mercado Pago
     Inicializa sob demanda (lazy loading) na primeira chamada
-    
+
     Returns:
         mercadopago.SDK: Instância configurada do SDK
-        
+
     Raises:
         Exception: Se não for possível inicializar o SDK
     """
     global _sdk, _mp_inicializado
-    
+
     # Lazy loading - só inicializa quando realmente precisar
     if not _mp_inicializado:
         if not _inicializar_mercadopago():
@@ -132,16 +137,16 @@ def get_mercadopago_sdk():
                 "SDK do Mercado Pago não pode ser inicializado! "
                 "Verifique se MERCADOPAGO_ACCESS_TOKEN está configurado corretamente."
             )
-    
+
     if not _sdk:
         raise Exception("SDK do Mercado Pago não está disponível!")
-    
+
     return _sdk
 
 def sdk_disponivel():
     """
     Verifica se o SDK pode ser inicializado sem realmente fazê-lo
-    
+
     Returns:
         bool: True se as credenciais estão disponíveis
     """
@@ -150,21 +155,21 @@ def sdk_disponivel():
 def mascara_token(token, prefixo_visivel=3, sufixo_visivel=4):
     """
     Mascara um token mostrando apenas início e fim
-    
+
     Args:
         token: Token a ser mascarado
         prefixo_visivel: Quantos caracteres mostrar no início
         sufixo_visivel: Quantos caracteres mostrar no fim
-    
+
     Returns:
         str: Token mascarado ou None
     """
     if not token:
         return None
-    
+
     if len(token) <= (prefixo_visivel + sufixo_visivel):
         return "***"
-    
+
     return f"{token[:prefixo_visivel]}...{token[-sufixo_visivel:]}"
 
 # 🎯 Validação inicial em produção (sem inicializar SDK)
@@ -175,7 +180,7 @@ if not DEBUG:
 # Exporta tudo que outros módulos precisam
 __all__ = [
     'TOKEN_BOT',
-    'TOKEN_MERCADOPAGO', 
+    'TOKEN_MERCADOPAGO',
     'PUBLIC_KEY',
     'MY_CHAT_ID',
     'GROUP_INVITE_LINK',
@@ -194,10 +199,10 @@ if __name__ == "__main__":
     print("\n" + "="*60)
     print(f"🔧 TESTE DE CONFIGURAÇÃO - Ambiente: {AMBIENTE.upper()}")
     print("="*60)
-    
+
     # Validação detalhada
     config_ok, faltando, ids_invalidos = validar_config(silencioso=True)
-    
+
     print("\n📋 STATUS DAS VARIÁVEIS:")
     print(f"✓ MERCADOPAGO_ACCESS_TOKEN: {'✅ Configurado' if TOKEN_MERCADOPAGO else '❌ Faltando'}")
     print(f"✓ PUBLIC_KEY: {'✅ Configurado' if PUBLIC_KEY else '❌ Faltando'}")
@@ -205,7 +210,7 @@ if __name__ == "__main__":
     print(f"✓ MY_CHAT_ID: {MY_CHAT_ID if MY_CHAT_ID else '❌ Faltando'}")
     print(f"✓ GROUP_INVITE_LINK: {'✅ Configurado' if GROUP_INVITE_LINK else '⚠️ Parcial'}")
     print(f"✓ GROUP_CHAT_ID: {GROUP_CHAT_ID if GROUP_CHAT_ID else '❌ Faltando'}")
-    
+
     # Mostra tokens mascarados apenas em DEBUG
     if DEBUG:
         print("\n🔐 INFORMAÇÕES SENSÍVEIS (MODO DEBUG):")
@@ -218,22 +223,22 @@ if __name__ == "__main__":
         if TOKEN_BOT:
             # Mostra token do bot mascarado
             print(f"   Bot Token: {mascara_token(TOKEN_BOT, 5, 6)}")
-    
+
     if not config_ok:
         print("\n❌ PROBLEMAS ENCONTRADOS:")
         if faltando:
             print(f"   - Variáveis faltando: {', '.join(faltando)}")
         if ids_invalidos:
             print(f"   - IDs com formato inválido: {', '.join(ids_invalidos)}")
-        print("\n💡 Solução: Configure as variáveis no arquivo .env")
+        print("\n💡 Solução: Configure as variáveis no arquivo .env ou no Railway")
         sys.exit(1)
-    
+
     print("\n✅ Configuração válida!")
-    
+
     # Teste do SDK disponível
     if sdk_disponivel():
         print("✅ Credenciais do Mercado Pago disponíveis")
-        
+
         # Pergunta se quer testar inicialização
         if DEBUG:
             print("\n🔄 Testando inicialização do SDK (lazy loading)...")
@@ -241,7 +246,7 @@ if __name__ == "__main__":
                 sdk_test = get_mercadopago_sdk()
                 print("✅ SDK inicializado com sucesso sob demanda!")
                 print(f"   Tipo do SDK: {type(sdk_test).__name__}")
-                
+
                 # Identifica ambiente do Mercado Pago
                 if TOKEN_MERCADOPAGO:
                     if 'APP_USR' in TOKEN_MERCADOPAGO:
@@ -250,21 +255,21 @@ if __name__ == "__main__":
                         print("   Ambiente MP: Teste")
                     else:
                         print("   Ambiente MP: Não identificado")
-                
+
                 # Teste adicional - lista métodos de pagamento
                 print("\n📝 Testando conexão com API...")
                 response = sdk_test.payment_methods().list_all()
                 if response.get("status") == 200:
                     metodos = response.get("response", [])
                     print(f"✅ API respondendo! {len(metodos)} métodos de pagamento disponíveis")
-                    
+
                     # Em DEBUG, mostra alguns métodos
                     if metodos and len(metodos) > 0:
                         primeiros = metodos[:3]
                         print("   Exemplos:", ", ".join([m.get("id", "?") for m in primeiros]))
                 else:
                     print(f"⚠️ API respondeu com status: {response.get('status')}")
-                    
+
             except Exception as e:
                 print(f"❌ Erro ao testar SDK: {e}")
                 sys.exit(1)
@@ -274,7 +279,7 @@ if __name__ == "__main__":
     else:
         print("⚠️ Credenciais do Mercado Pago não encontradas")
         print("   O SDK não poderá ser usado")
-    
+
     print("\n" + "="*60)
     print("✅ TESTE CONCLUÍDO COM SUCESSO!")
     print(f"   Ambiente: {AMBIENTE}")
