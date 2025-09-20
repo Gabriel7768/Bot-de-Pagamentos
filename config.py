@@ -1,8 +1,15 @@
 import os
+from dotenv import load_dotenv
+
+# Carrega as variáveis de ambiente do arquivo .env
+load_dotenv()
 
 # 🔑 Credenciais Mercado Pago (produção)
 PUBLIC_KEY = os.getenv("PUBLIC_KEY")
 TOKEN_MERCADOPAGO = os.getenv("MERCADOPAGO_ACCESS_TOKEN")
+
+# Debug do TOKEN_MERCADOPAGO
+print("DEBUG TOKEN_MERCADOPAGO:", repr(TOKEN_MERCADOPAGO))
 
 # 🤖 Token do bot do Telegram
 TOKEN_BOT = os.getenv("TELEGRAM_TOKEN")
