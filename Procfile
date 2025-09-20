@@ -1,1 +1,1 @@
-worker: python "Bot pix cópia e cola.py"
+worker: python main.py
